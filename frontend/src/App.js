@@ -1,11 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
 
 import Login    from './components/Login';
 import Register from './components/Register';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
+import './App.css';
 
 function ProtectedRoute({ children }) {
   const isLoggedIn = localStorage.getItem('loggedIn');
@@ -15,52 +15,67 @@ function ProtectedRoute({ children }) {
 function TasksPage() {
   const [tasks, setTasks] = React.useState([
     { id: 1, title: 'Learn React',        completed: false },
-    { id: 2, title: 'Build Task Manager', completed: false },
+    { id: 2, title: 'Build Task Manager', completed: true  },
   ]);
 
-  const handleAdd = (title) => {
-    setTasks([...tasks, { id: Date.now(), title, completed: false }]);
-  };
-
-  const handleDelete = (id) => {
-    setTasks(tasks.filter(t => t.id !== id));
-  };
-
-  const handleToggle = (id) => {
-    setTasks(tasks.map(t =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    ));
-  };
+  const handleAdd    = (title) => setTasks([...tasks, { id: Date.now(), title, completed: false }]);
+  const handleDelete = (id)    => setTasks(tasks.filter(t => t.id !== id));
+  const handleToggle = (id)    => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
 
   const handleLogout = () => {
     localStorage.removeItem('loggedIn');
     window.location.href = '/login';
   };
 
+  const total   = tasks.length;
+  const done    = tasks.filter(t => t.completed).length;
+  const pending = total - done;
+  const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
+
   return (
-    <div className="container mt-5">
-      <div className="row justify-content-center">
-        <div className="col-md-8">
+    <div className="page-wrapper" style={{ paddingTop: 40 }}>
+      <div className="orb orb-1" />
+      <div className="orb orb-2" />
 
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1>📝 Task Manager</h1>
-            <button className="btn btn-outline-danger" onClick={handleLogout}>
-              Logout
-            </button>
+      <div className="tasks-layout">
+        {/* Top Bar */}
+        <div className="topbar">
+          <div className="topbar-brand">
+            <div>
+              <div className="topbar-title">Task Manager</div>
+            </div>
           </div>
-
-          <TaskForm onAdd={handleAdd} />
-
-          <div className="mb-3">
-            <span className="badge bg-primary me-2">Total: {tasks.length}</span>
-            <span className="badge bg-success">
-              Done: {tasks.filter(t => t.completed).length}
-            </span>
-          </div>
-
-          <TaskList tasks={tasks} onDelete={handleDelete} onToggle={handleToggle} />
-
+          <button className="btn-logout" onClick={handleLogout}>
+            <span>↩</span> Sign out
+          </button>
         </div>
+
+        {/* Stats */}
+        <div className="stats-row">
+          <div className="stat-card total">
+            <div className="stat-value">{total}</div>
+            <div className="stat-label">Total</div>
+          </div>
+          <div className="stat-card done">
+            <div className="stat-value">{done}</div>
+            <div className="stat-label">Completed</div>
+          </div>
+          <div className="stat-card pending">
+            <div className="stat-value">{pending}</div>
+            <div className="stat-label">Pending</div>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="progress-bar-wrap">
+          <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+
+        {/* Add Task */}
+        <TaskForm onAdd={handleAdd} />
+
+        {/* Task List */}
+        <TaskList tasks={tasks} onDelete={handleDelete} onToggle={handleToggle} />
       </div>
     </div>
   );

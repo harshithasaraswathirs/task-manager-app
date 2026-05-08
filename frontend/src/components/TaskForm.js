@@ -6,25 +6,28 @@ function TaskForm({ onAdd }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onAdd(title);
+    onAdd(title.trim());
     setTitle('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4">
-      <div className="input-group">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Enter a new task..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <button type="submit" className="btn btn-primary">
-          Add Task
-        </button>
-      </div>
-    </form>
+    <div className="task-form-card">
+      <form onSubmit={handleSubmit}>
+        <div className="task-input-row">
+          <input
+            type="text"
+            className="task-input"
+            placeholder="What needs to be done?"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            autoFocus
+          />
+          <button type="submit" className="btn-add">
+            + Add
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
