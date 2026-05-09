@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import api from '../api';
 import '../App.css';
 
 function Login() {
@@ -15,21 +16,24 @@ function Login() {
     setLoading(true);
     setError('');
 
-    // Simulate async check
-    await new Promise(r => setTimeout(r, 600));
+    try {
+      const response = await api.post('/auth/login', { email, password });
 
-    if (email === 'test@test.com' && password === '1234') {
-      localStorage.setItem('loggedIn', 'true');
+      // Store the real JWT token + user info
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userName', response.data.name);
+      localStorage.setItem('userEmail', response.data.email);
+
       navigate('/tasks');
-    } else {
-      setError('Invalid email or password. Try test@test.com / 1234');
+    } catch (err) {
+      setError(err.response?.data || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div className="page-wrapper">
-      {/* Ambient orbs */}
       <div className="orb orb-1" />
       <div className="orb orb-2" />
 

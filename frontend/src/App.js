@@ -1,29 +1,68 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import Login    from './components/Login';
 import Register from './components/Register';
 import TaskForm from './components/TaskForm';
 import TaskList from './components/TaskList';
+import api      from './api';
 import './App.css';
 
 function ProtectedRoute({ children }) {
-  const isLoggedIn = localStorage.getItem('loggedIn');
-  return isLoggedIn ? children : <Navigate to="/login" />;
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" />;
 }
 
 function TasksPage() {
-  const [tasks, setTasks] = React.useState([
-    { id: 1, title: 'Learn React',        completed: false },
-    { id: 2, title: 'Build Task Manager', completed: true  },
-  ]);
+  const [tasks, setTasks]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState('');
 
-  const handleAdd    = (title) => setTasks([...tasks, { id: Date.now(), title, completed: false }]);
-  const handleDelete = (id)    => setTasks(tasks.filter(t => t.id !== id));
-  const handleToggle = (id)    => setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const userName = localStorage.getItem('userName') || 'there';
+
+  // Load tasks from backend when the page mounts
+  useEffect(() => {
+    api.get('/tasks')
+      .then(res => setTasks(res.data))
+      .catch(() => setError('Failed to load tasks.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAdd = async (title) => {
+    try {
+      const res = await api.post('/tasks', { title });
+      setTasks(prev => [...prev, res.data]); // add to local state instantly
+    } catch {
+      setError('Failed to add task.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/tasks/${id}`);
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } catch {
+      setError('Failed to delete task.');
+    }
+  };
+
+  const handleToggle = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    try {
+      const res = await api.put(`/tasks/${id}`, {
+        title: task.title,
+        completed: !task.completed,
+      });
+      setTasks(prev => prev.map(t => t.id === id ? res.data : t));
+    } catch {
+      setError('Failed to update task.');
+    }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
     window.location.href = '/login';
   };
 
@@ -38,11 +77,12 @@ function TasksPage() {
       <div className="orb orb-2" />
 
       <div className="tasks-layout">
-        {/* Top Bar */}
         <div className="topbar">
           <div className="topbar-brand">
             <div>
-              <div className="topbar-title">Task Manager</div>
+              <div className="topbar-title">
+                Hey, <span>{userName}</span> 👋
+              </div>
             </div>
           </div>
           <button className="btn-logout" onClick={handleLogout}>
@@ -50,7 +90,12 @@ function TasksPage() {
           </button>
         </div>
 
-        {/* Stats */}
+        {error && (
+          <div className="alert-custom alert-danger-custom" style={{ marginBottom: 16 }}>
+            <span>⚠️</span> {error}
+          </div>
+        )}
+
         <div className="stats-row">
           <div className="stat-card total">
             <div className="stat-value">{total}</div>
@@ -66,16 +111,20 @@ function TasksPage() {
           </div>
         </div>
 
-        {/* Progress */}
         <div className="progress-bar-wrap">
           <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
 
-        {/* Add Task */}
-        <TaskForm onAdd={handleAdd} />
-
-        {/* Task List */}
-        <TaskList tasks={tasks} onDelete={handleDelete} onToggle={handleToggle} />
+        {loading ? (
+          <p style={{ color: 'var(--text-2)', textAlign: 'center', padding: 40 }}>
+            Loading tasks…
+          </p>
+        ) : (
+          <>
+            <TaskForm onAdd={handleAdd} />
+            <TaskList tasks={tasks} onDelete={handleDelete} onToggle={handleToggle} />
+          </>
+        )}
       </div>
     </div>
   );

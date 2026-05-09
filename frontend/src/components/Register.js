@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import api from '../api';
 import '../App.css';
 
 function Register() {
@@ -18,8 +19,6 @@ function Register() {
     setError('');
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 500));
-
     if (password !== confirm) {
       setError('Passwords do not match!');
       setLoading(false);
@@ -31,9 +30,21 @@ function Register() {
       return;
     }
 
-    setSuccess('Account created! Redirecting to login…');
-    setTimeout(() => navigate('/login'), 2000);
-    setLoading(false);
+    try {
+      const response = await api.post('/auth/register', { name, email, password });
+
+      // Auto-login after register — store token just like login does
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userName', response.data.name);
+      localStorage.setItem('userEmail', response.data.email);
+
+      setSuccess('Account created! Redirecting…');
+      setTimeout(() => navigate('/tasks'), 1500);
+    } catch (err) {
+      setError(err.response?.data || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
